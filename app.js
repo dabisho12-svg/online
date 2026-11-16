@@ -330,8 +330,14 @@ function viewLogin() {
       e.preventDefault();
       const username = f.username.value.trim().toLowerCase();
       const user = DB.data.users.find((u) => u.username.toLowerCase() === username);
-      if (!user || !(await verifyPassword(user, f.password.value)))
-        return notify("Invalid username or password.", true);
+      if (!user)
+        return notify(
+          'No account "' + f.username.value.trim() + '" on this device. If the admin just created it, ' +
+          "the updated data.json must be uploaded to the repository first. Then press \"Reload accounts\" below.",
+          true
+        );
+      if (!(await verifyPassword(user, f.password.value)))
+        return notify("Wrong password for this account.", true);
       sessionStorage.setItem(SESSION_KEY, user.id);
       tab = null;
       render();
@@ -341,7 +347,21 @@ function viewLogin() {
     h("p", { class: "muted" }, "Sign in to continue."),
     field("Username", h("input", { type: "text", name: "username", required: true, autocomplete: "username" })),
     field("Password", h("input", { type: "password", name: "password", required: true, autocomplete: "current-password" })),
-    h("button", {}, "Sign in")
+    h("button", {}, "Sign in"),
+    h("hr"),
+    h("p", { class: "muted small" },
+      DB.data.publishedVersion
+        ? "Accounts loaded from data.json published " + new Date(DB.data.publishedVersion).toLocaleString()
+        : "No published accounts loaded on this device yet."),
+    h("button", {
+      type: "button",
+      class: "secondary",
+      onclick: async () => {
+        await syncPublished();
+        notify("Accounts reloaded.");
+        render();
+      }
+    }, "Reload accounts")
   );
   return f;
 }
